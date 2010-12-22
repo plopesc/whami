@@ -1,0 +1,5 @@
+; $Id:$ 
+name = Whami Source Adapter
+description = Provides a Source Adapter for the Whami project.
+core = 6.x
+package = Whami
