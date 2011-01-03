@@ -1,0 +1,70 @@
+<?php 
+
+function whami_source_adapter_schema() {
+  $schema['whami_temporary_table'] = array(
+    'description' => t('Temporary table for whami Source Adapter'),
+    'fields' => array(
+      'sourceID' => array(
+        'description' => t('sourceID'),
+        'type' => 'varchar',
+        'length' => 50,
+      ),
+      'categoryID' => array(
+        'description' => t('categoryID'),
+        'type' => 'varchar',
+        'length' => 50
+      ),
+      'title' => array(
+        'description' => t('title'),
+        'type' => 'varchar',
+        'length' => 50
+      ),
+      'body' => array(
+        'description' => t('body'),
+        'type' => 'varchar',
+        'length' => 50
+      ),
+      'url' => array(
+        'description' => t('url'),
+        'type' => 'varchar',
+        'length' => 50
+      ),
+      'full_url' => array(
+        'description' => t('fullUrl'),
+        'type' => 'varchar',
+        'length' => 150
+      ),
+      'longitude' => array(
+        'description' => t('lon'),
+        'type' => 'float'
+      ),
+      'latitude' => array(
+        'description' => t('lat'),
+        'type' => 'float'
+      ),
+      'elevation' => array(
+        'description' => t('elevation'),
+        'type' => 'float'
+      ),
+      'distance' => array(
+        'description' => t('distance'),
+        'type' => 'float'
+      ),
+      'sid' => array(
+        'description' => t('session ID'),
+        'type' => 'varchar',
+        'length' => 64
+      ),
+    ),
+  );
+  
+  return $schema;
+}
+
+function whami_source_adapter_install() {
+  drupal_install_schema('whami_source_adapter');
+}
+
+function whami_source_adapter_uninstall() {
+  drupal_uninstall_schema('whami_source_adapter');
+}

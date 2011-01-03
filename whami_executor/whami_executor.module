@@ -1,0 +1,128 @@
+<?php
+
+
+function whami_executor_menu(){
+  $items['whami/Executor'] = array(
+    'title' => 'Whami Executor',
+    'access arguments' => array('geonames docs'),
+    'page callback' => 'whami_executor_proof_of_concept',
+    'page arguments' => array(),
+  );
+  return $items;
+
+}
+
+function whami_executor_proof_of_concept(){
+  $results =   whami_executor_process(array('wikipedia' => array('01', '02')), 'bbox', array('bbox' => NULL, 'maxRows' => 5, 'length_title' => 25, 'length_body' => 50, 'length_url' =>15, 'maxRequestRows' => 20, 'language' => 'es', 'north' => 50, 'south' => 35, 'east' => -1, 'west' => -5, 'lon' => 40, 'lat' => -3, 'radius' => 40));
+  return theme_table(array_keys($results[0]),$results);
+}
+
+function whami_executor_process($sources, $method, $parameters) {
+	
+	$adapters = array();
+	$cwd = $_SERVER['DOCUMENT_ROOT'] . base_path();
+  $sessionID = $_COOKIE[session_name()];;
+	
+	foreach ($sources as $key => $value){
+    $parameters['sessionID'] = $sessionID;
+    $parameters['cwd'] = $cwd;
+    $parameters['method'] = $method;
+    $parameters['categoriesID'] = $value;
+    $parameters['sourceID'] = $key;
+		$adapters[]	= JobStartAsync($_SERVER['HTTP_HOST'], base_path() . getLink(drupal_get_path('module','whami_source_adapter_' . $key) . '/executor.php', $parameters));
+	}
+  
+  while (true) {
+    $finish = TRUE;
+    foreach ($adapters as $key => $value){
+      $result = JobPollAsync($value);
+      if ($result !== FALSE){
+        $finish = FALSE;
+      }
+    }
+    if ($finish) break;
+  }
+  
+  $results = array();
+  $result = db_query("SELECT * FROM {whami_temporary_table} where sid = '%s'", array($sessionID));
+  while ($row = db_fetch_array($result)) $results[] = $row;
+  db_query("DELETE FROM {whami_temporary_table} where sid = '%s'", array($sessionID));
+  if(!empty($results)){
+    return $results;
+  }else{
+    drupal_set_message(t('The source adapter doesn\'t return any result.'), 'error');
+    return "";
+  }
+
+}
+
+function JobStartAsync($server, $url, $port=80,$conn_timeout=30, $rw_timeout=86400)
+{
+  $errno = '';
+  $errstr = '';
+  
+  set_time_limit(0);
+  
+  $fp = fsockopen($server, $port, $errno, $errstr, $conn_timeout);
+  if (!$fp) {
+     echo "$errstr ($errno)<br />\n";
+     return false;
+  }
+  $out = "GET $url HTTP/1.1\r\n";
+  $out .= "Host: $server\r\n";
+  $out .= "Connection: Close\r\n\r\n";
+  
+  stream_set_blocking($fp, false);
+  stream_set_timeout($fp, $rw_timeout);
+  fwrite($fp, $out);
+  
+  return $fp;
+}
+
+// returns false if HTTP disconnect (EOF), or a string (could be empty string) if still connected
+function JobPollAsync(&$fp) 
+{
+  if ($fp === false) return false;
+  
+  if (feof($fp)) {
+    fclose($fp);
+    $fp = false;
+    return false;
+  }
+  
+  return fread($fp, 10000);
+}
+
+/**
+ * Create a link by joining the given URL and the parameters given as the second argument.
+ * Arguments :  $url - The base url.
+ *                $params - An array containing all the parameters and their values.
+ *                $use_existing_arguments - Use the parameters that are present in the current page
+ * Return : The new url.
+ * Example : 
+ *            getLink("http://www.google.com/search",array("q"=>"binny","hello"=>"world","results"=>10));
+ *                    will return
+ *            http://www.google.com/search?q=binny&amp;hello=world&amp;results=10
+ */
+function getLink($url,$params=array(),$use_existing_arguments=false) {
+    if($use_existing_arguments) $params = $params + $_GET;
+    if(!$params) return $url;
+    $link = $url;
+    if(strpos($link,'?') === false) $link .= '?'; //If there is no '?' add one at the end
+    elseif(!preg_match('/(\?|\&(amp;)?)$/',$link)) $link .= '&'; //If there is no '&' at the END, add one.
+    
+    $params_arr = array();
+    foreach($params as $key=>$value) {
+        if(gettype($value) == 'array') { //Handle array data properly
+            foreach($value as $val) {
+                $params_arr[] = $key . '[]=' . $val;
+            }
+        } else {
+            $params_arr[] = $key . '=' . $value;
+        }
+    }
+    $link .= implode('&',$params_arr);
+    
+    return $link;
+} 
+
