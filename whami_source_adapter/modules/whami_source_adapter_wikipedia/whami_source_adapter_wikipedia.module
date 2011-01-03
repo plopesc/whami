@@ -3,7 +3,7 @@
 // $Id:$
 
 function whami_get_information_bounding_box_wikipedia($bbox = NULL, $lan = "", $categoriesID = array(), $sourceID = "", $maxRequestRows = 20){
-  $query = array('north' => $bbox['north'], 'south' => $bbox['south'], 'east' => $bbox['east'], 'west' =>$bbox['west'], 'lan' => $lan, 'maxRows' => $maxRequestRows);
+  $query = array('north' => $bbox['north'], 'south' => $bbox['south'], 'east' => $bbox['east'], 'west' =>$bbox['west'], 'lang' => $lan, 'maxRows' => $maxRequestRows);
   $result = geonames_query('wikipediabbox', $query, array('columns' => array('title','summary','wikipediaurl', 'lat', 'lng','elevation')));
   
   $results = whami_source_adapter_wikipedia_return($result, $sourceID);  
@@ -12,7 +12,7 @@ function whami_get_information_bounding_box_wikipedia($bbox = NULL, $lan = "", $
 }
 
 function whami_get_information_geopoint_radius_wikipedia($lat = 0, $lon = 0, $radius = 5, $lan = "", $categoriesID = array(), $sourceID = "", $maxRequestRows = 20){
-	$query = array('lat' => $lat, 'lng' => $lon, 'radius' => $radius, 'lan' => $lan, 'maxRows' => $maxRequestRows);
+	$query = array('lat' => $lat, 'lng' => $lon, 'radius' => $radius, 'lang' => $lan, 'maxRows' => $maxRequestRows);
 	
 	$result = geonames_query('nearbywikipedia', $query, array('columns' => array('title','summary','wikipediaurl', 'lat', 'lng','distance','elevation')));
   
@@ -25,16 +25,16 @@ function whami_source_adapter_wikipedia_return($result, $sourceID){
   $results = array();
   foreach ($result->results as $key => $value) {
     $results[] = array(
-      'source' => $sourceID,
-      'category' => '01',
+      'sourceID' => $sourceID,
+      'categoryID' => '01',
       'title' => $value['title'],
       'body' => $value['summary'],
       'url' => $value['wikipediaurl'],
       'full_url' => $value['wikipediaurl'],
       'latitude' => $value['lat'],
       'longitude' => $value['lng'],
-      'altitude' => $value['elevation'],
-      'distance' => $value['distance'],
+      'elevation' => $value['elevation'],
+      'distance' => isset($value['distance']) ? $value['distance'] : NULL,
     );
   }
   

@@ -2,43 +2,44 @@
 
 // $Id:$
 
-function whami_get_information_bounding_box($bbox = NULL, $lan = "", $categoriesID = array(), $sourceID = "wikipedia", $maxRows, $length_title = -1, $length_body = -1, $length_link = -1, $maxRequestRows){
+function whami_get_information_bounding_box($bbox = NULL, $lan = "", $categoriesID = array(), $sourceID = "wikipedia", $maxRows, $length_title = -1, $length_body = -1, $length_link = -1, $maxRequestRows, $sessionID){
   
 	if ($bbox == NULL) {
 	 $bbox = array(
 	   'north' => 90,
-	   'east' => 180,
+	   'east' => 90,
 	   'south' => -90,
 	   'west' => -180
 	 );
 	}
-	
 	if (module_exists('whami_source_adapter_' . $sourceID)){
 	 $function = 'whami_get_information_bounding_box_' . $sourceID;
 	 $result = $function($bbox, $lan, $categoriesID, $sourceID, $maxRequestRows);
-	 return whami_source_adapter_parse_response($result, $maxRows, $length_title, $length_body, $length_link);
-	}else 
-	drupal_set_message(t("The required Whami data source is not available. Please install the whami_source_adapter_@name module", array("@name" => $sourceID)), 'error');
+	 return whami_source_adapter_parse_response($result, $maxRows, $length_title, $length_body, $length_link, $sessionID);
+	}else{ 
+  	drupal_set_message(t("The required Whami data source is not available. Please install the whami_source_adapter_@name module", array("@name" => $sourceID)), 'error');
+	}
 }
 
-function whami_get_information_geopoint_radius($lon = 0, $lat = 0, $radius = 5,$lan = "", $categoriesID = array(), $sourceID = "wikipedia", $maxRows = 15, $length_title = -1, $length_body = -1, $length_link = -1, $maxRequestedRows = 20){
+function whami_get_information_geopoint_radius($lon = 0, $lat = 0, $radius = 5,$lan = "", $categoriesID = array(), $sourceID = "wikipedia", $maxRows = 15, $length_title = -1, $length_body = -1, $length_link = -1, $maxRequestedRows = 20, $sessionID){
 	
 	if (module_exists('whami_source_adapter_' . $sourceID)){
    $function = 'whami_get_information_geopoint_radius_' . $sourceID;
    $result = $function($lon, $lat, $radius, $lan, $categoriesID, $sourceID, $maxRequestRows);
-   return whami_source_adapter_parse_response($result, $maxRows, $length_title, $length_body, $length_link);
+   return whami_source_adapter_parse_response($result, $maxRows, $length_title, $length_body, $length_link, $sessionID);
   }else 
   drupal_set_message(t("The required Whami data source is not available. Please install the whami_source_adapter_@name module", array("@name" => $sourceID)), 'error');
 }
 
 function whami_get_information(){
-  $a = whami_get_information_bounding_box(NULL, 'es', array("01"), 'wikipedia', 3, 10, 10, 10, 20);
-  $b = whami_get_information_geopoint_radius(40, -3, 10, 'es', array("01"), 'wikipedia', 3, 10, 10, 10, 20);
+  $sessionID = $_COOKIE[session_name()];
+  $a = whami_get_information_bounding_box(NULL, 'es', array("01"), 'wikipedia', 3, 10, 10, 10, 20, $sessionID);
+  $b = whami_get_information_geopoint_radius(40, -3, 10, 'es', array("01"), 'wikipedia', 3, 10, 10, 10, 20, $sessionID);
   return '<h2>whami_get_information_bounding_box</h2><br /> results for: whami_get_information_bounding_box(NULL, \'es\', array("01"), \'wikipedia\', 3, 10, 10, 10, 20)'. theme_table(array_keys($a[0]), $a) . 
       '<h2>whami_get_information_geopoint_radius</h2><br /> results for: whami_get_information_geopoint_radius(40,-3,10,\'es\',array("01"),\'wikipedia\', 3, 10, 10 , 10 , 20)' . theme_table(array_keys($b[0]), $b);
 }
 
-function whami_source_adapter_parse_response($result, $maxRows, $length_title, $length_body, $length_link){
+function whami_source_adapter_parse_response($result, $maxRows, $length_title, $length_body, $length_link, $sesionID){
   
   $result = array_slice($result, 0, $maxRows);
   
@@ -47,6 +48,9 @@ function whami_source_adapter_parse_response($result, $maxRows, $length_title, $
     $result[$key]['title'] = substr($result[$key]['title'],0, $length_title);
     $result[$key]['body'] = substr($result[$key]['body'],0, $length_body);
     $result[$key]['url'] = substr($result[$key]['url'],0, $length_link);
+    $result[$key]['sid'] = $sesionID;
+    drupal_write_record('whami_temporary_table', $result[$key]);
+    
   }
   
   return $result;
