@@ -1,0 +1,99 @@
+<?php
+
+// $Id:$
+
+function whami_get_bounding_box_data($bbox, $categoriesID, $language, $entries) {
+  //Add the query-specific parameters
+  $params['north'] = $bbox['north'];
+  $params['south'] = $bbox['south'];
+  $params['east'] = $bbox['east'];
+  $params['west'] = $bbox['west'];
+
+  //Call to the generic Acquisition method
+  return whami_get_data('bbox', $params, $categoriesID, $language, $entries);
+
+}
+
+function whami_get_geopoint_radius_data($point, $radius, $language, $categoriesID, $entries){
+  //Add the query-specific parameters
+  $params['lon'] = $point['lon'];
+  $params['lat'] = $point['lat'];
+  $params['radius'] = $radius;
+
+  //Call to the generic Acquisition method
+  return whami_get_data('geopoint_radius', $params, $language, $categoriesID, $entries);
+}
+
+function whami_get_data($method, $params, $categoriesID, $language, $entries){
+  //Get All the Data Sources
+  $query = db_query(db_rewrite_sql("SELECT n.nid FROM {node} n WHERE n.type = 'whamidatasource'"));
+  while ($result =db_fetch_array($query)){
+    $node = node_load($result);
+    $sources[$node->field_programname[0]['value']] = $node;
+  }
+  //Get the nid for each category
+  $categoriesID = array('01','02');
+  $query = db_query(db_rewrite_sql("SELECT nid, field_whamicategoryid_value FROM {content_type_whamicategories} WHERE field_whamicategoryid_value IN (". db_placeholders($categoriesID, 'varchar') .")"), $categoriesID);
+  while ($result =db_fetch_array($query)){
+    $nids[$result['nid']] = $result['field_whamicategoryid_value'];
+    $node = node_load($result['nid']);
+    $categories[$result['field_whamicategoryid_value']] = $node;
+  }
+  //Create the associative array source->categories and the Source Adapter parameters
+  $param1 = array();
+  foreach ($sources as $key => $value){
+    //match the source categories and the requested categories
+    $cats = array();
+    foreach($value -> field_whamicategories as $category => $nid){
+      if (array_key_exists($nid['nid'], $nids)) {
+        $cats[] = $nids[$nid['nid']];
+      }
+    }
+    if (!empty($cats)){
+      $param1[$value->field_programname[0]['value']] = $cats; 
+      $params['titleshrink'][$value->field_programname[0]['value']] = isset($value->field_titleshrink[0]['value']) ? $value->field_titleshrink[0]['value'] : NULL;
+      $params['bodyshrink'][$value->field_programname[0]['value']] = isset($value->field_bodyshrink[0]['value']) ? $value->field_bodyshrink[0]['value'] : NULL;
+      $params['linkshrink'][$value->field_programname[0]['value']] = isset($value->field_linkshrink[0]['value']) ? $value->field_linkshrink[0]['value'] : NULL;
+      $params['maxRequestRows'][$value->field_programname[0]['value']] = isset($value->field_maxrequestrows[0]['value']) ? $value->field_maxrequestrows[0]['value'] : NULL;
+      $params['maxRows'][$value->field_programname[0]['value']] = isset($entries) ? $entries : $value->field_maxrows[0]['value'];
+    }
+  }
+  //Add the common parameters
+  $params['language'] = $language;
+  $data = whami_executor_process($param1, $method, $params);
+  if (!isset($data)) return NULL;
+  foreach ($data as $key => $value){
+    $data[$key]['source_name'] = $sources[$value['sourceID']]->title;
+    $data[$key]['map_display_icon'] = $sources[$value['sourceID']]->field_mapdisplayicon[0];
+    $data[$key]['source_image'] = $sources[$value['sourceID']]->field_sourceimage[0];
+    $data[$key]['category_name'] = $categories[$value['categoryID']]->title;
+    $data[$key]['category_icon'] = $categories[$value['categoryID']]->field_whamicategoryicon;
+    
+    unset($data[$key]['sid']);
+    unset($data[$key]['sourceID']);
+    unset($data[$key]['categoryID']);
+  }
+  return $data;
+}
+
+function whami_data_acquisitor_menu() {
+  $items['whami/DataAcquisitor'] = array(
+    'title' => 'Whami Data Acquisitor',
+    'access arguments' => array('geonames docs'),
+    'page callback' => 'whami_data_acquisitor_demo',
+    'page arguments' => array(),
+  );
+  return $items;
+}
+
+function whami_data_acquisitor_demo() {
+  $results = whami_get_bounding_box_data(array(
+    'north' => 90,
+    'east' => 90,
+    'south' => -90,
+    'west' => -180
+  ),array("01","02"),'es',10);
+  $results = whami_get_geopoint_radius_data(array('lon' => 40, 'lat' => -3), 1000, array("01","02"),'es',10);
+   
+  return isset($results) ? theme_table(array_keys($results[0]),$results) : "";
+}

@@ -3,3 +3,4 @@ name = Whami Executor
 description = Provides an Executor for the Whami project.
 core = 6.x
 package = Whami
+dependencies[] = whami_source_adapter

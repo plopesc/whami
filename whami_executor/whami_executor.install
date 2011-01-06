@@ -1,8 +1,10 @@
 <?php 
 
-function whami_source_adapter_schema() {
+// $Id:$
+
+function whami_executor_schema() {
   $schema['whami_temporary_table'] = array(
-    'description' => t('Temporary table for whami Source Adapter'),
+    'description' => t('Temporary table for whami Executor'),
     'fields' => array(
       'sourceID' => array(
         'description' => t('sourceID'),
@@ -56,15 +58,18 @@ function whami_source_adapter_schema() {
         'length' => 64
       ),
     ),
+    'indexes' => array(
+      'sessionID' => array('sid')
+    ),
   );
   
   return $schema;
 }
 
-function whami_source_adapter_install() {
-  drupal_install_schema('whami_source_adapter');
+function whami_executor_install() {
+  drupal_install_schema('whami_executor');
 }
 
-function whami_source_adapter_uninstall() {
-  drupal_uninstall_schema('whami_source_adapter');
+function whami_executor_uninstall() {
+  drupal_uninstall_schema('whami_executor');
 }

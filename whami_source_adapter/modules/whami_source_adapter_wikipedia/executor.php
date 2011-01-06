@@ -36,8 +36,14 @@ if($_GET['method'] == 'bbox'){
     'east' => isset($_GET['east']) ? $_GET['east'] : 180,
     'west' => isset($_GET['west']) ? $_GET['west'] : -180,
   );
-  whami_get_information_bounding_box(NULL, $_GET['language'], $_GET['categoriesID'], $_GET['sourceID'], $_GET['maxRows'], $_GET['length_title'], $_GET['length_body'], $_GET['length_url'], $_GET['maxRequestRows'], $_GET['sessionID']);
+  $result = whami_get_information_bounding_box($bbox, $_GET['language'], $_GET['categoriesID'], $_GET['sourceID'], $_GET['maxRows'], $_GET['titleshrink'], $_GET['bodyshrink'], $_GET['linkshrink'], $_GET['maxRequestRows'], $_GET['sessionID']);
 }else if($_GET['method'] == 'geopoint_radius'){
-  whami_get_information_geopoint_radius($_GET['lon'], $_GET['lat'], $_GET['radius'], $_GET['language'], $_GET['categoriesID'], $_GET['sourceID'], $_GET['maxRows'], $_GET['length_title'], $_GET['length_body'], $_GET['length_url'], $_GET['maxRequestRows'], $_GET['sessionID']);
+  $result = whami_get_information_geopoint_radius($_GET['lon'], $_GET['lat'], $_GET['radius'], $_GET['language'], $_GET['categoriesID'], $_GET['sourceID'], $_GET['maxRows'], $_GET['titleshrink'], $_GET['bodyshrink'], $_GET['linkshrink'], $_GET['maxRequestRows'], $_GET['sessionID']);
+}
+
+if (isset($result)){
+  foreach($result as $key => $value){
+    drupal_write_record('whami_temporary_table', $result[$key]);
+  } 
 }
 exit();
