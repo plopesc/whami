@@ -2,43 +2,72 @@
 
 // $Id:$
 
-function whami_get_information_bounding_box($bbox = NULL, $lan = "", $categoriesID = array(), $sourceID = "wikipedia", $maxRows, $titleshrink = -1, $bodyshrink = -1, $linkshrink = -1, $maxRequestRows, $sessionID){
-  
-	if ($bbox == NULL) {
-	 $bbox = array(
-	   'north' => 90,
-	   'east' => 90,
-	   'south' => -90,
-	   'west' => -180
-	 );
-	}
-	if (module_exists('whami_source_adapter_' . $sourceID)){
-	 $function = 'whami_get_information_bounding_box_' . $sourceID;
-	 $result = $function($bbox, $lan, $categoriesID, $sourceID, $maxRequestRows);
-	 return whami_source_adapter_parse_response($result, $maxRows, $titleshrink, $bodyshrink, $linkshrink, $sessionID);
-	}else{ 
+/**
+ * Function that request for data to a source adapter form certain Bounding Box
+ * 
+ * @param $bbox
+ * @param $lan
+ * @param $categoriesID
+ * @param $sourceID
+ * @param $maxRows
+ * @param $titleshrink
+ * @param $bodyshrink
+ * @param $linkshrink
+ * @param $maxRequestRows
+ * @param $sessionID
+ * 
+ * @return Parsed response from the specific source adapter
+ */
+function whami_get_information_bounding_box($bbox, $lan, $categoriesID, $sourceID, $maxRows, $titleshrink, $bodyshrink, $linkshrink, $maxRequestRows, $sessionID){
+  if (module_exists('whami_source_adapter_' . $sourceID)){
+	$function = 'whami_get_information_bounding_box_' . $sourceID;
+    $result = $function($bbox, $lan, $categoriesID, $sourceID, $maxRequestRows);
+	return whami_source_adapter_parse_response($result, $maxRows, $titleshrink, $bodyshrink, $linkshrink, $sessionID);
+  }else{ 
   	drupal_set_message(t("The required Whami data source is not available. Please install the whami_source_adapter_@name module", array("@name" => $sourceID)), 'error');
-	}
+  }
 }
 
-function whami_get_information_geopoint_radius($lon = 0, $lat = 0, $radius = 5,$lan = "", $categoriesID = array(), $sourceID = "wikipedia", $maxRows = 15, $titleshrink = -1, $bodyshrink = -1, $linkshrink = -1, $maxRequestRows = 20, $sessionID){
-	echo $maxRows;
-	if (module_exists('whami_source_adapter_' . $sourceID)){
-   $function = 'whami_get_information_geopoint_radius_' . $sourceID;
-   $result = $function($lon, $lat, $radius, $lan, $categoriesID, $sourceID, $maxRequestRows);
-   return whami_source_adapter_parse_response($result, $maxRows, $titleshrink, $bodyshrink, $linkshrink, $sessionID);
-  }else 
-  drupal_set_message(t("The required Whami data source is not available. Please install the whami_source_adapter_@name module", array("@name" => $sourceID)), 'error');
+/**
+ * Function that request for data to a source adapter form certain Geopoint and Radius
+ * 
+ * @param $lon
+ * @param $lat
+ * @param $radius
+ * @param $lan
+ * @param $categoriesID
+ * @param $sourceID
+ * @param $maxRows
+ * @param $titleshrink
+ * @param $bodyshrink
+ * @param $linkshrink
+ * @param $maxRequestRows
+ * @param $sessionID
+ * 
+ * @return Parsed response from the specific source adapter
+ */
+function whami_get_information_geopoint_radius($lon, $lat, $radius,$lan, $categoriesID, $sourceID, $maxRows, $titleshrink, $bodyshrink, $linkshrink, $maxRequestRows, $sessionID){
+  if (module_exists('whami_source_adapter_' . $sourceID)){
+    $function = 'whami_get_information_geopoint_radius_' . $sourceID;
+    $result = $function($lon, $lat, $radius, $lan, $categoriesID, $sourceID, $maxRequestRows);
+    return whami_source_adapter_parse_response($result, $maxRows, $titleshrink, $bodyshrink, $linkshrink, $sessionID);
+  }else{ 
+    drupal_set_message(t("The required Whami data source is not available. Please install the whami_source_adapter_@name module", array("@name" => $sourceID)), 'error');
+  }
 }
 
-function whami_get_information(){
-  $sessionID = $_COOKIE[session_name()];
-  $a = whami_get_information_bounding_box(NULL, 'es', array("01"), 'wikipedia', 3, 10, 10, 10, 20, $sessionID);
-  $b = whami_get_information_geopoint_radius(40, -3, 10, 'es', array("01"), 'wikipedia', 3, 10, 10, 10, 20, $sessionID);
-  return '<h2>whami_get_information_bounding_box</h2><br /> results for: whami_get_information_bounding_box(NULL, \'es\', array("01"), \'wikipedia\', 3, 10, 10, 10, 20)'. theme_table(array_keys($a[0]), $a) . 
-      '<h2>whami_get_information_geopoint_radius</h2><br /> results for: whami_get_information_geopoint_radius(40,-3,10,\'es\',array("01"),\'wikipedia\', 3, 10, 10 , 10 , 20)' . theme_table(array_keys($b[0]), $b);
-}
-
+/**
+ *  Function that parses the results from an specific source adapter to the main format
+ *  
+ * @param unknown_type $result
+ * @param unknown_type $maxRows
+ * @param unknown_type $titleshrink
+ * @param unknown_type $bodyshrink
+ * @param unknown_type $linkshrink
+ * @param unknown_type $sesionID
+ * 
+ * @return Parsed response for the Source Adapter
+ */
 function whami_source_adapter_parse_response($result, $maxRows, $titleshrink, $bodyshrink, $linkshrink, $sesionID){
   
   $result = array_slice($result, 0, $maxRows);
@@ -54,13 +83,32 @@ function whami_source_adapter_parse_response($result, $maxRows, $titleshrink, $b
   return $result;
 }
 
+/**
+ * Implementation of hook_menu().
+ */
 function whami_source_adapter_menu(){
   $items['whami/SourceAdapter'] = array(
     'title' => 'Whami SourceAdapter',
     'access arguments' => array('geonames docs'),
-    'page callback' => 'whami_get_information',
+    'page callback' => 'whami_source_adapter_demo',
     'page arguments' => array(),
+    'type' => MENU_CALLBACK,
   );
   return $items;
+}
 
+/**
+ * Function that implements a demo for the Source Adapter
+ */
+function whami_source_adapter_demo(){
+  $sessionID = $_COOKIE[session_name()];
+  $a = whami_get_information_bounding_box(array(
+  	'north' => 90,
+  	'east' => 90,
+    'south' => -90,
+    'west' => -180
+  ), 'es', array("01"), 'wikipedia', 3, 10, 10, 10, 20, $sessionID);
+  $b = whami_get_information_geopoint_radius(40, -3, 10, 'es', array("01"), 'wikipedia', 3, 10, 10, 10, 20, $sessionID);
+  return '<h2>whami_get_information_bounding_box</h2><br /> results for: whami_get_information_bounding_box(NULL, \'es\', array("01"), \'wikipedia\', 3, 10, 10, 10, 20)'. theme_table(array_keys($a[0]), $a) . 
+      '<h2>whami_get_information_geopoint_radius</h2><br /> results for: whami_get_information_geopoint_radius(40,-3,10,\'es\',array("01"),\'wikipedia\', 3, 10, 10 , 10 , 20)' . theme_table(array_keys($b[0]), $b);
 }

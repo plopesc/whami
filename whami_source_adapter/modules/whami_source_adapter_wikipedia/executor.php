@@ -31,10 +31,10 @@ module_list(TRUE, FALSE);
 //Call to the sourceAdapter
 if($_GET['method'] == 'bbox'){
   $bbox = array(
-    'north' => isset($_GET['north']) ? $_GET['north'] : 90,
-    'south' => isset($_GET['south']) ? $_GET['south'] : -90,
-    'east' => isset($_GET['east']) ? $_GET['east'] : 180,
-    'west' => isset($_GET['west']) ? $_GET['west'] : -180,
+    'north' => $_GET['north'],
+    'south' => $_GET['south'],
+    'east' => $_GET['east'],
+    'west' => $_GET['west'],
   );
   $result = whami_get_information_bounding_box($bbox, $_GET['language'], $_GET['categoriesID'], $_GET['sourceID'], $_GET['maxRows'], $_GET['titleshrink'], $_GET['bodyshrink'], $_GET['linkshrink'], $_GET['maxRequestRows'], $_GET['sessionID']);
 }else if($_GET['method'] == 'geopoint_radius'){

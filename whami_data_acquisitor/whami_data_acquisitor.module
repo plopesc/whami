@@ -2,29 +2,63 @@
 
 // $Id:$
 
+/**
+ * Entry point for the Data Staging module when the request is of type Bounding Box
+ * 
+ * @param $bbox Array with the values for the requested Bounding Box
+ * @param $categoriesID Array with the IDs of the categories to request
+ * @param $language	Code langauge for the request, for example "en" or "de"
+ * @param $entries Number of entries to request 
+ * 
+ * @return Array with re sults of the query to the Data Staging module
+ */
 function whami_get_bounding_box_data($bbox, $categoriesID, $language, $entries) {
-  //Add the query-specific parameters
-  $params['north'] = $bbox['north'];
-  $params['south'] = $bbox['south'];
-  $params['east'] = $bbox['east'];
-  $params['west'] = $bbox['west'];
-
-  //Call to the generic Acquisition method
-  return whami_get_data('bbox', $params, $categoriesID, $language, $entries);
+  if(whami_get_bounding_box_data_validate($bbox, $categoriesID, $language, $entries)){
+    //Add the query-specific parameters
+    $params['north'] = $bbox['north'];
+    $params['south'] = $bbox['south'];
+    $params['east'] = $bbox['east'];
+    $params['west'] = $bbox['west'];
+  
+    //Call to the generic Acquisition method
+    return whami_get_data('bbox', $params, $categoriesID, $language, $entries);
+  }else{
+    return false;
+  }
 
 }
 
-function whami_get_geopoint_radius_data($point, $radius, $language, $categoriesID, $entries){
-  //Add the query-specific parameters
-  $params['lon'] = $point['lon'];
-  $params['lat'] = $point['lat'];
-  $params['radius'] = $radius;
-
-  //Call to the generic Acquisition method
-  return whami_get_data('geopoint_radius', $params, $language, $categoriesID, $entries);
+/**
+ * Entry point for the Data Staging module when the request is of type Geopoint Radius
+ * 
+ * @param $point Array with the coords of the point
+ * @param $radius Radius in km to make the request
+ * @param $categoriesID Array with the IDs of the categories to request
+ * @param $language	Code langauge for the request, for example "en" or "de"
+ * @param $entries Number of entries to request 
+ * 
+ * @return Array with re sults of the query to the Data Staging module
+ */
+function whami_get_geopoint_radius_data($point, $radius, $categoriesID, $language, $entries){
+  if(whami_get_geopoint_radius_data($point, $radius, $categoriesID, $language, $entries)){
+    //Add the query-specific parameters
+    $params['lon'] = $point['lon'];
+    $params['lat'] = $point['lat'];
+    $params['radius'] = $radius;
+  
+    //Call to the generic Acquisition method
+    return whami_get_data('geopoint_radius', $params, $categoriesID, $language, $entries);
+  }else{
+    return FALSE;
+  }
 }
 
-function whami_get_data($method, $params, $categoriesID, $language, $entries){
+/**
+ * Function that creates a map of the whami sources and their categories
+ * 
+ * @return Map that associates each source with their categories
+ */
+function whami_get_datasource_category_mapping(){
   //Get All the Data Sources
   $query = db_query(db_rewrite_sql("SELECT n.nid FROM {node} n WHERE n.type = 'whamidatasource'"));
   while ($result =db_fetch_array($query)){
@@ -32,36 +66,80 @@ function whami_get_data($method, $params, $categoriesID, $language, $entries){
     $sources[$node->field_programname[0]['value']] = $node;
   }
   //Get the nid for each category
-  $categoriesID = array('01','02');
-  $query = db_query(db_rewrite_sql("SELECT nid, field_whamicategoryid_value FROM {content_type_whamicategories} WHERE field_whamicategoryid_value IN (". db_placeholders($categoriesID, 'varchar') .")"), $categoriesID);
+  $query = db_query("SELECT nid, field_whamicategoryid_value FROM {content_type_whamicategories}");
   while ($result =db_fetch_array($query)){
     $nids[$result['nid']] = $result['field_whamicategoryid_value'];
     $node = node_load($result['nid']);
     $categories[$result['field_whamicategoryid_value']] = $node;
   }
-  //Create the associative array source->categories and the Source Adapter parameters
-  $param1 = array();
+  
   foreach ($sources as $key => $value){
-    //match the source categories and the requested categories
-    $cats = array();
-    foreach($value -> field_whamicategories as $category => $nid){
-      if (array_key_exists($nid['nid'], $nids)) {
-        $cats[] = $nids[$nid['nid']];
-      }
+    foreach ($sources[$key]->field_whamicategories as $category => $nid){
+      $cats[$nids[$nid['nid']]] = $categories[$nids[$nid['nid']]];
     }
-    if (!empty($cats)){
-      $param1[$value->field_programname[0]['value']] = $cats; 
-      $params['titleshrink'][$value->field_programname[0]['value']] = isset($value->field_titleshrink[0]['value']) ? $value->field_titleshrink[0]['value'] : NULL;
-      $params['bodyshrink'][$value->field_programname[0]['value']] = isset($value->field_bodyshrink[0]['value']) ? $value->field_bodyshrink[0]['value'] : NULL;
-      $params['linkshrink'][$value->field_programname[0]['value']] = isset($value->field_linkshrink[0]['value']) ? $value->field_linkshrink[0]['value'] : NULL;
-      $params['maxRequestRows'][$value->field_programname[0]['value']] = isset($value->field_maxrequestrows[0]['value']) ? $value->field_maxrequestrows[0]['value'] : NULL;
-      $params['maxRows'][$value->field_programname[0]['value']] = isset($entries) ? $entries : $value->field_maxrows[0]['value'];
+    $sources[$key]->whami_categories = $cats;
+  }
+  
+  return $sources;
+}
+
+/**
+ * Function that match the Data sources with a group of categories
+ * 
+ * @param Array $map The map of data sources
+ * @param Array $categoriesID The categories to match
+ * 
+ * @return an array with indicates a group of categories for each enabled data source
+ */
+function whami_match_source_requested_categories($map,$categoriesID){
+  foreach($map as $key => $value){
+    $active = $value->field_activeflag;
+    if($active[0]['value'] == 'active'){
+      foreach($value -> whami_categories as $category => $nid){
+        if (in_array($category, $categoriesID)) {
+          $cats[] = $category;
+        }
+      }
+      if(!empty($cats))$array[$key] = $cats;
     }
   }
-  //Add the common parameters
+  return $array;
+}
+
+/**
+ * Function that prepares the parameters for the Executor
+ * 
+ * @param $map Map with the data sources to request
+ * @param $match Array that matchs any source with their categories
+ * @param $params Other generic params
+ * @param $entries Number of entries to request
+ * @param $language Langauge for the request
+ * 
+ * @return A parameter array for the whami_executor module
+ */
+function whami_prepare_executor_parameters($map, $match, $params, $entries, $language){
+  foreach($map as $key => $value){
+    if(array_key_exists($key, $match)){
+      $params['titleshrink'][$key] = isset($value->field_titleshrink[0]['value']) ? $value->field_titleshrink[0]['value'] : NULL;
+      $params['bodyshrink'][$key] = isset($value->field_bodyshrink[0]['value']) ? $value->field_bodyshrink[0]['value'] : NULL;
+      $params['linkshrink'][$key] = isset($value->field_linkshrink[0]['value']) ? $value->field_linkshrink[0]['value'] : NULL;
+      $params['maxRequestRows'][$key] = isset($value->field_maxrequestrows[0]['value']) ? $value->field_maxrequestrows[0]['value'] : NULL;
+      $params['maxRows'][$key] = isset($entries) ? $entries : $value->field_maxrows[0]['value'];
+    }
+  }
   $params['language'] = $language;
-  $data = whami_executor_process($param1, $method, $params);
-  if (!isset($data)) return NULL;
+  return $params;
+}
+
+/**
+ * Function that parses the results of the whami executor to return the requested parameters
+ * 
+ * @param $data Data from the executor
+ * @param $sources Map of the requested sources
+ * 
+ * @return The Data Acquisition module parsed results
+ */
+function whami_parse_executor_response($data, $sources){
   foreach ($data as $key => $value){
     $data[$key]['source_name'] = $sources[$value['sourceID']]->title;
     $data[$key]['map_display_icon'] = $sources[$value['sourceID']]->field_mapdisplayicon[0];
@@ -76,16 +154,68 @@ function whami_get_data($method, $params, $categoriesID, $language, $entries){
   return $data;
 }
 
+/**
+ * Main function for the Data Acquisition module
+ * @param $method to request, can be "bbox" or "geopoint_radius"
+ * @param $params Specific params for each method
+ * @param $categoriesID Array with the IDs of the categories to request
+ * @param $language	Code langauge for the request, for example "en" or "de"
+ * @param $entries Number of entries to request 
+ *  
+ * @return Array with re sults of the query to the Data Staging module
+ */
+function whami_get_data($method, $params, $categoriesID, $language, $entries){
+  $map = whami_get_datasource_category_mapping();
+  if (empty($map)){
+    drupal_set_message(t('There Are not Sources Aavailable'),'error');
+    return NULL;
+  }
+  $match = whami_match_source_requested_categories($map, $categoriesID);
+  if(empty($match)){
+    drupal_set_message(t('The matching categories and sources process didn\'t return any result'), 'error');
+  }
+  $params = whami_prepare_executor_parameters($map,$match, $params, $entries, $language);
+  $data = whami_executor_process($match, $method, $params);
+  if (!isset($data)){ 
+    drupal_set_message(t('The Whami Executor process didn\'t return any result'), 'error');
+    return NULL;
+  }
+  return whami_parse_executor_response($data, $map);
+}
+
+function whami_get_bounding_box_data_validate($bbox, $categoriesID, $language, $entries){
+  if(!is_array($bbox)){
+    drupal_set_message(t('The Bounding Box must be an array'), 'error');
+    return FALSE;
+  }
+  return TRUE;
+}
+
+function whami_get_geopoint_radius_data($point, $radius, $categoriesID, $language, $entries){
+  if(!is_array($point)){
+    drupal_set_message(t('The Point must be an array'), 'error');
+    return FALSE;
+  }
+  return TRUE;
+}
+
+/**
+ * Implementation of hook_menu()
+ */
 function whami_data_acquisitor_menu() {
   $items['whami/DataAcquisitor'] = array(
     'title' => 'Whami Data Acquisitor',
     'access arguments' => array('geonames docs'),
     'page callback' => 'whami_data_acquisitor_demo',
     'page arguments' => array(),
+    'type' => MENU_CALLBACK,
   );
   return $items;
 }
 
+/**
+ * Function that implements a demo of the Data Acquisition module
+ */
 function whami_data_acquisitor_demo() {
   $results = whami_get_bounding_box_data(array(
     'north' => 90,
@@ -93,7 +223,7 @@ function whami_data_acquisitor_demo() {
     'south' => -90,
     'west' => -180
   ),array("01","02"),'es',10);
-  $results = whami_get_geopoint_radius_data(array('lon' => 40, 'lat' => -3), 1000, array("01","02"),'es',10);
+  $results = whami_get_geopoint_radius_data(array('lon' => 40, 'lat' => -3), 1000,array("01","02"), 'es',10);
    
   return isset($results) ? theme_table(array_keys($results[0]),$results) : "";
 }

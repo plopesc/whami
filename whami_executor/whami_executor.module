@@ -2,22 +2,20 @@
 
 // $Id:$
 
-function whami_executor_menu(){
-  $items['whami/Executor'] = array(
-    'title' => 'Whami Executor',
-    'access arguments' => array('geonames docs'),
-    'page callback' => 'whami_executor_proof_of_concept',
-    'page arguments' => array(),
-  );
-  return $items;
-
-}
-
-function whami_executor_proof_of_concept(){
-  $results =   whami_executor_process(array('wikipedia' => array('01', '02')), 'bbox', array('maxRows' => 5, 'titleshrink' => array('wikipedia' => 25), 'bodyshrink' => array('wikipedia' => 50), 'linkshrink' => array('wikipedia' => 15), 'maxRequestRows' => 20, 'language' => 'es', 'north' => 50, 'south' => 35, 'east' => -1, 'west' => -5, 'lon' => 40, 'lat' => -3, 'radius' => 40));
-  return theme_table(array_keys($results[0]),$results);
-}
-
+/**
+ * Function that implements the Executor module request
+ * @param $sources Associative array with the sorces to request and their categories
+ * @param $method Metod to request, can be "bbox" or "geopoint_radius"
+ * @param $parameters Array with the parameters for the executor: The parameters must be a key/value array
+ * mandatory: (the four corners of the bounding box in an array or a geographical point/radius (in km))
+ *  mandatory: language
+ *  optional: length to which the title is shrinked for each source
+ *  optional: length to which the body is shrinked for each source
+ *  optional: length to which the link is shrinked for each source
+ *  mandatory: number of entries to request for each source
+ *  mandatory: number of entries for each source
+ * 
+ */
 function whami_executor_process($sources, $method, $parameters) {
 	
 	$adapters = array();
@@ -68,6 +66,15 @@ function whami_executor_process($sources, $method, $parameters) {
 
 }
 
+/**
+ *  Function that Starts ans Asynchronuos task
+ *  
+ * @param unknown_type $server
+ * @param unknown_type $url
+ * @param unknown_type $port
+ * @param unknown_type $conn_timeout
+ * @param unknown_type $rw_timeout
+ */
 function JobStartAsync($server, $url, $port=80,$conn_timeout=30, $rw_timeout=86400)
 {
   $errno = '';
@@ -91,6 +98,9 @@ function JobStartAsync($server, $url, $port=80,$conn_timeout=30, $rw_timeout=864
   return $fp;
 }
 
+/**
+ * Function that controls an asynchronous task
+ */
 // returns false if HTTP disconnect (EOF), or a string (could be empty string) if still connected
 function JobPollAsync(&$fp) 
 {
@@ -103,4 +113,27 @@ function JobPollAsync(&$fp)
   }
   
   return fread($fp, 10000);
+}
+
+/**
+ * Implementation of hook_menu()
+ */
+function whami_executor_menu(){
+  $items['whami/Executor'] = array(
+    'title' => 'Whami Executor',
+    'access arguments' => array('geonames docs'),
+    'page callback' => 'whami_executor_demo',
+    'page arguments' => array(),
+  	'type' => MENU_CALLBACK,
+  );
+  return $items;
+
+}
+
+/**
+ * Function that implements a demo of the Executor module
+ */
+function whami_executor_demo(){
+  $results =   whami_executor_process(array('wikipedia' => array('01', '02')), 'bbox', array('maxRows' => 5, 'titleshrink' => array('wikipedia' => 25), 'bodyshrink' => array('wikipedia' => 50), 'linkshrink' => array('wikipedia' => 15), 'maxRequestRows' => 20, 'language' => 'es', 'north' => 50, 'south' => 35, 'east' => -1, 'west' => -5, 'lon' => 40, 'lat' => -3, 'radius' => 40));
+  return theme_table(array_keys($results[0]),$results);
 }
