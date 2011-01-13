@@ -104,10 +104,10 @@ function whami_source_adapter_demo(){
   $sessionID = $_COOKIE[session_name()];
   $a = whami_get_information_bounding_box(array(
   	'north' => 90,
-  	'east' => 90,
+  	'east' => 180,
     'south' => -90,
     'west' => -180
-  ), 'es', array("01"), 'wikipedia', 3, 10, 10, 10, 20, $sessionID);
+  ), '', array("01"), 'zoom', 3, 10, 10, 10, 20, $sessionID);
   $b = whami_get_information_geopoint_radius(40, -3, 10, 'es', array("01"), 'wikipedia', 3, 10, 10, 10, 20, $sessionID);
   return '<h2>whami_get_information_bounding_box</h2><br /> results for: whami_get_information_bounding_box(NULL, \'es\', array("01"), \'wikipedia\', 3, 10, 10, 10, 20)'. theme_table(array_keys($a[0]), $a) . 
       '<h2>whami_get_information_geopoint_radius</h2><br /> results for: whami_get_information_geopoint_radius(40,-3,10,\'es\',array("01"),\'wikipedia\', 3, 10, 10 , 10 , 20)' . theme_table(array_keys($b[0]), $b);

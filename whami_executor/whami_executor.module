@@ -40,11 +40,10 @@ function whami_executor_process($sources, $method, $parameters) {
     $params['maxRequestRows'] = $parameters['maxRequestRows'][$key];
 		$adapters[]	= JobStartAsync($_SERVER['HTTP_HOST'], base_path() . drupal_get_path('module','whami_source_adapter_' . $key) . '/executor.php?' . http_build_query($params, '', '&'));
 	}
-  
-  while (true) {
+	while (true) {
     $finish = TRUE;
     foreach ($adapters as $key => $value){
-      $result = JobPollAsync($value);
+      $result = JobPollAsync($adapters[$key]);
       if ($result !== FALSE){
         $finish = FALSE;
 //        echo $result;
@@ -134,6 +133,6 @@ function whami_executor_menu(){
  * Function that implements a demo of the Executor module
  */
 function whami_executor_demo(){
-  $results =   whami_executor_process(array('wikipedia' => array('01', '02')), 'bbox', array('maxRows' => 5, 'titleshrink' => array('wikipedia' => 25), 'bodyshrink' => array('wikipedia' => 50), 'linkshrink' => array('wikipedia' => 15), 'maxRequestRows' => 20, 'language' => 'es', 'north' => 50, 'south' => 35, 'east' => -1, 'west' => -5, 'lon' => 40, 'lat' => -3, 'radius' => 40));
+  $results =   whami_executor_process(array('wikipedia' => array('01', '02'),'zoom' => array('01', '02'), ), 'bbox', array('maxRows' => array('zoom' => 25, 'wikipedia' => 25), 'titleshrink' => array('zoom' => 25, 'wikipedia' => 15), 'bodyshrink' => array('zoom' => 50, 'wikipedia' => 75), 'linkshrink' => array('zoom' => 15, 'wikipedia' => 5), 'maxRequestRows' => array('zoom' => 25, 'wikipedia' => 15), 'language' => '', 'north' => 90, 'south' => -90, 'east' => 180, 'west' => -180, 'lon' => 40, 'lat' => -3, 'radius' => 40));
   return theme_table(array_keys($results[0]),$results);
 }

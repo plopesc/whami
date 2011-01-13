@@ -40,7 +40,7 @@ function whami_get_bounding_box_data($bbox, $categoriesID, $language, $entries) 
  * @return Array with re sults of the query to the Data Staging module
  */
 function whami_get_geopoint_radius_data($point, $radius, $categoriesID, $language, $entries){
-  if(whami_get_geopoint_radius_data($point, $radius, $categoriesID, $language, $entries)){
+  if(whami_get_geopoint_radius_data_validate($point, $radius, $categoriesID, $language, $entries)){
     //Add the query-specific parameters
     $params['lon'] = $point['lon'];
     $params['lat'] = $point['lat'];
@@ -191,7 +191,7 @@ function whami_get_bounding_box_data_validate($bbox, $categoriesID, $language, $
   return TRUE;
 }
 
-function whami_get_geopoint_radius_data($point, $radius, $categoriesID, $language, $entries){
+function whami_get_geopoint_radius_data_validate($point, $radius, $categoriesID, $language, $entries){
   if(!is_array($point)){
     drupal_set_message(t('The Point must be an array'), 'error');
     return FALSE;
@@ -222,8 +222,8 @@ function whami_data_acquisitor_demo() {
     'east' => 90,
     'south' => -90,
     'west' => -180
-  ),array("01","02"),'es',10);
-  $results = whami_get_geopoint_radius_data(array('lon' => 40, 'lat' => -3), 1000,array("01","02"), 'es',10);
+  ),array("01","02"),'',10);
+//  $results = whami_get_geopoint_radius_data(array('lon' => 40, 'lat' => -3), 1000,array("01","02"), 'es',10);
    
   return isset($results) ? theme_table(array_keys($results[0]),$results) : "";
 }
