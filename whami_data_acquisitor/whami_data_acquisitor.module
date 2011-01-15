@@ -93,6 +93,7 @@ function whami_get_datasource_category_mapping(){
  */
 function whami_match_source_requested_categories($map,$categoriesID){
   foreach($map as $key => $value){
+    $cats = array();
     $active = $value->field_activeflag;
     if($active[0]['value'] == 'active'){
       foreach($value -> whami_categories as $category => $nid){
@@ -144,8 +145,8 @@ function whami_parse_executor_response($data, $sources){
     $data[$key]['source_name'] = $sources[$value['sourceID']]->title;
     $data[$key]['map_display_icon'] = $sources[$value['sourceID']]->field_mapdisplayicon[0];
     $data[$key]['source_image'] = $sources[$value['sourceID']]->field_sourceimage[0];
-    $data[$key]['category_name'] = $categories[$value['categoryID']]->title;
-    $data[$key]['category_icon'] = $categories[$value['categoryID']]->field_whamicategoryicon;
+    $data[$key]['category_name'] = $sources[$value['sourceID']]->whami_categories[$value['categoryID']]->title;
+    $data[$key]['category_icon'] = $sources[$value['sourceID']]->whami_categories[$value['categoryID']]->field_whamicategoryicon[0]['filepath'];
     
     unset($data[$key]['sid']);
     unset($data[$key]['sourceID']);
