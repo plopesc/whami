@@ -146,7 +146,7 @@ function whami_parse_executor_response($data, $sources){
     $data[$key]['map_display_icon'] = $sources[$value['sourceID']]->field_mapdisplayicon[0];
     $data[$key]['source_image'] = $sources[$value['sourceID']]->field_sourceimage[0];
     $data[$key]['category_name'] = $sources[$value['sourceID']]->whami_categories[$value['categoryID']]->title;
-    $data[$key]['category_icon'] = $sources[$value['sourceID']]->whami_categories[$value['categoryID']]->field_whamicategoryicon[0]['filepath'];
+    $data[$key]['category_icon'] = $sources[$value['sourceID']]->whami_categories[$value['categoryID']]->field_whamicategoryicon[0];
     
     unset($data[$key]['sid']);
     unset($data[$key]['sourceID']);
